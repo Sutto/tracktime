@@ -1,0 +1,114 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'thor'
+require 'yaml'
+require 'fileutils'
+class TimeTracker < Thor
+
+  PROJECT = File.expand_path(Dir.pwd)
+  CONFIG  = File.expand_path("~/tt.yml")
+  FileUtils.touch CONFIG
+  
+  map ["-h", "-?", "--help", "-D"] => :help, ["in", "ci"] => :clockin,
+      ["out", "co"] => :clockout, ["st", "s"] => :status
+  
+  desc 'clockin', "Clocks in for the project at '#{PROJECT}'"
+  def clockin
+    if clocked_in?
+      puts "You are already clocked in, please clock out first."
+    else
+      current_shifts << {
+        :description => "In Progress",
+        :completed   => false,
+        :start_time  => Time.now,
+        :end_time    => nil
+      }
+      save!
+      puts "Clocked in."
+    end
+  end
+  
+  desc 'clockout', "Clocks out for the project at '#{PROJECT}'"
+  def clockout
+    if clocked_in?
+      last_shift = current_shifts.detect { |s| !s[:completed] }
+      last_shift[:end_time] = Time.now
+      print "Message: "
+      last_shift[:description] = STDIN.gets.strip
+      last_shift[:completed] = true
+      save!
+      puts "Clocked Out"
+    else
+      puts "Please clock in first."
+    end
+  end
+  
+  desc 'status', "Shows the status for the project at '#{PROJECT}'"
+  method_options :all => :boolean
+  def status
+    if options && options[:all]
+      s = []
+      shifts.each do |k, v|
+        s << [k, v]
+      end
+      s = s.sort_by { |g| g[0] }
+      s.each do |project, s2|
+        puts "Project: #{project}"
+        shifts_for(s2, "- ")
+      end
+    else
+      shifts_for(current_shifts)
+    end
+  end
+  
+  protected
+  
+  def shifts_for(group, spacing = "")
+    group.each do |shift|
+      st = shift[:completed] ? "[DONE]" : " [WIP]"
+      shift[:description] = "No description" if shift[:description].nil? || shift[:description].strip == ""
+      t = "#{st} #{shift[:description].ljust(max_width)} - #{shift[:start_time].strftime("%I:%M%p, %d/%m/%Y")}"
+      t << " to #{shift[:end_time].strftime("%I:%M%p, %d/%m/%Y")}" if shift[:completed]
+      print spacing.to_s
+      puts t
+    end
+    if group.empty?
+      print spacing.to_s
+      puts "No shifts for this project."
+    end
+  end
+  
+  def current_shifts
+    shifts[PROJECT] ||= []
+  end
+  
+  def max_width
+    current_shifts.map { |s| s[:description].length }.max
+  end
+  
+  def clocked_in?
+    current_shifts.any? { |c| !c[:completed] }
+  end
+  
+  def shifts
+    @shifts ||= proc do
+      f = YAML.load_file(CONFIG) rescue nil
+      if !f.is_a?(Hash)
+        return Hash.new { |h,k| h[k] = [] }
+      else
+        return f
+      end
+    end.call
+  end
+  
+  def save!
+    File.open(CONFIG, "w+") { |f| f.write YAML.dump(@shifts) }
+  end
+  
+end
+
+if ARGV.empty?
+  TimeTracker.new.status
+else
+  TimeTracker.start
+end
