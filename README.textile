@@ -1,0 +1,17 @@
+h1. TrackTime
+
+TrackTime, aka @trt@, is a micro-time tracking application
+written in ruby. It has zero fluff, 1 dependency and is decidedly
+minimalistic. Hell, it could probably be rewriting as a rake
+task just as easily.
+
+Usage:
+
+@trt@ or @trt status@ for the current project status, add @-a@ for
+status across all projects.
+
+@trt in@ to clock in.
+
+@trt out@ to clock out.
+
+Entries are stores in @~/track.yml@
