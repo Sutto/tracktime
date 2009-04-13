@@ -4,7 +4,7 @@
 class TimeTracker < Thor
 
   PROJECT = File.basename(File.expand_path(Dir.pwd))
-  CONFIG  = File.expand_path("~/tt.yml")
+  CONFIG  = File.expand_path("~/trt.yml")
   
   map ["-h", "-?", "--help", "-D"] => :help, ["in", "ci"] => :clockin,
       ["out", "co"] => :clockout, ["st", "s"] => :status
@@ -78,10 +78,7 @@ class TimeTracker < Thor
   end
   
   def shifts
-    @shifts ||= proc do
-      f = YAML.load_file(CONFIG) rescue nil
-        f.is_a?(Hash) ? f : Hash.new { |h,k| h[k] = [] }
-    end.call
+    @shifts ||= (f = YAML.load_file(CONFIG) rescue nil).is_a?(Hash) ? f : Hash.new { |h,k| h[k] = [] }
   end
   
   def save!
