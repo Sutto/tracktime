@@ -1,5 +1,14 @@
 #!/usr/bin/env ruby
-%w(rubygems thor yaml).each { |f| require f }
+# coding: utf-8
+
+%w(rubygems yaml thor).each do |f|
+  begin
+    require f
+  rescue LoadError => e
+    $stderr.puts "Unable to load '#{f}', exiting."
+    exit 1
+  end
+end
 
 class TimeTracker < Thor
 
